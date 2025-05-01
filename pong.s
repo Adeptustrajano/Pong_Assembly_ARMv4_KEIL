@@ -10,18 +10,25 @@ UART1			EQU	0xE0010000
 I_Bit			EQU 0x80 ; bit 7 de la CPSR
 N				EQU	16 ; filas
 M				EQU	32 ;columnas
+		ALIGN
 crono 			DCD 0	;contador de centesimas de segundo
 max 			DCD 8 	;velocidad de movimiento (en centesimas s.)
 next 			DCD 0 	;instante siguiente movimiento
 pelota          DCD 0   ;posicion pelota
+MarcadorIzq     DCB 0   ; marcador del jugador izquierdo
+MarcadorDch     DCB 0   ; marcador del jugador derecho
+		ALIGN
 raquetaIzq		SPACE	20 ; Vector [5] donde se guardan las posiciones de las X de la raqueta izquierda
+		ALIGN
 raquetaDch		SPACE	20 ; Vector [5] donde se guardan las posiciones de las X de la raqueta derecha
+		ALIGN
 tecla			DCB 0	; tecla pulsada en ASCII
-ALIGN
+		ALIGN
 dir1 			DCB 0 	;mov. vertical raqueta izda (-1 arriba,0 stop,1 abajo)
 dir2 			DCB 0 	;mov. vertical raqueta dcha (-1 arriba,0 stop,1 abajo)
 dir3 			DCB 0 	;mov. pelota (a decidir por el alumno)
 fin 			DCB 0 	;indicador fin de programa (si vale 1)
+
 
 
 		AREA codigo,CODE
@@ -32,7 +39,8 @@ fin 			DCB 0 	;indicador fin de programa (si vale 1)
 		; instruccion de c digo para poder ejecutar todo el Startup de golpe
 		;actualizar el vector de interrupciones para que apunte a las RSI
 		
-inicio	LDR r0, =VICVectAddr0 ;accedo a la @ del VICVectAddr0
+inicio	
+		LDR r0, =VICVectAddr0 ;accedo a la @ del VICVectAddr0
 		LDR r1, =RSI_teclado ;accedo a la @ de la subrutina del teclado
 		mov r2, #7 ;muevo un 7 a r1 ya que es la IRQ7
 		str r1, [r0, r2, LSL #2] ;guardo la @ de la subrutina del teclado en la posicion 7 del VICVectAddr0
@@ -44,7 +52,7 @@ inicio	LDR r0, =VICVectAddr0 ;accedo a la @ del VICVectAddr0
 		mov r1, #0x90 ; muevo a r1 la mascara que tiene a 1 los bits 7 y 4
 		str r1, [r0] ;guardo la m scara en VICIntEnable
 		
-		
+LTORG   ; Aquí se generan los literales en el literalpool
 pintar_pantalla
 		LDR r0, =0x40007E00
 		mov r1, #'X'
@@ -121,11 +129,9 @@ pintar_pelota
         AND r0, r0, #0x3    	  ; mascara de los dos últimos bits con AND y el nuemro RAND para opciones de 0,1,2,3
         LDR r1, =dir3        	  ; dirección donde se guarda la dirección de movimiento
         STRB r0, [r1]       	  ; guardar dirección aleatoria en dir3
-
-
+     
 ;se inicia pelota en mitad del campo y se pone direccion de mov inicial con una mascara AND de 2 bits en 1 de 4 op.
 ;una vez pintada guardar posición pelota en pelota en memoria DATA y direccion en dir3
-
 		
 ;se inicia la partida
 jugar
@@ -258,14 +264,14 @@ mover_pelota
         LDR r0, =pelota
         LDR r1, [r0]          ; r1 = dirección actual pelota
         MOV r2, #0x20         ; espacio para borrar la pelota
-        STRB r2, [r1]         ; borrar la pelota anterior
+        STRB r2, [r1]         ; borrar la pelota anterior con espacio en blanco
 
         ; calcular fila y columna actuales
         LDR r3, =0x40007E00
         SUB r4, r1, r3        ; r4 = offset pelota = fila*32 + col
         MOV r5, #32
-        MOV r6, r4 lsr#5      ; fila = offset / 32
-		AND r7, r4, #31       ; col = offset % 32
+        MOV r6, r4, lsr#5      ; fila = offset / 32 con movimiento de 5 bits derecha
+		AND r7, r4, #31       ; col = mascara de bits con AND para obtener el resto  de la division para representar la columna dentro de la fila 
 
 
         ; cargar dirección actual de la pelota 0,1,2,3
@@ -304,9 +310,9 @@ comprobar
 
         ; asegurar que fila está en rango [0,15]
         CMP r6, #0
-        BLT siguiente_mov          ; fuera del tablero por arriba, no mover
+        BLT siguiente_mov          ; fuera del tablero por arriba, no mover 
         CMP r6, #16
-        BGE siguiente_mov          ; fuera del tablero por abajo
+        BGE siguiente_mov          ; fuera del tablero por abajo de 16, osea valido entre 0-15
 
         ; asegurar que columna está en rango [0,31]
         CMP r7, #0
@@ -346,30 +352,30 @@ comprobar_raq_izq
         ; comprobar si r6 (fila) coincide con alguna de raquetaIzq
         LDR r9, =raquetaIzq
         MOV r10, #0
-comprobar_loop_izq
+comprobar_bucle_izq
         LDR r11, [r9, r10, LSL #2]
         SUB r11, r11, r3     ; offset = pos - pantalla base
-        UDIV r12, r11, #32   ; fila = offset / 32
+        MOV r12, r11, LSR #5  ; fila = offset / 32 osea 2 elevado a 5
         CMP r12, r6
         BEQ rebote_horizontal
         ADD r10, r10, #1
         CMP r10, #5
-        BLT comprobar_loop_izq
+        BLT comprobar_bucle_izq
         B pintar_pelota      ; no ha chocado
 
 comprobar_raq_dch
         ; comprobar si r6 (fila) coincide con alguna de raquetaDch
         LDR r9, =raquetaDch
         MOV r10, #0
-comprobar_loop_dch
+comprobar_bucle_dch
         LDR r11, [r9, r10, LSL #2]
         SUB r11, r11, r3
-        UDIV r12, r11, #32
+        MOV r12, r11, LSR #5   ; Dividir r11 entre 32 (desplazar 5 bits a la derecha)
         CMP r12, r6
         BEQ rebote_horizontal
         ADD r10, r10, #1
         CMP r10, #5
-        BLT comprobar_loop_dch
+        BLT comprobar_bucle_dch
         B pintar_pelota      ; no ha chocado
 
 rebote_horizontal
@@ -381,14 +387,28 @@ rebote_horizontal
         B siguiente_mov      ; no pintar aún
 
 gol_dch
-        ; gol a la derecha, reiniciar partida 
-        B inicio
+        ; Incrementar marcador del jugador derecho
+        LDR r0, =MarcadorDch
+        LDRB r1, [r0]
+        ADD r1, r1, #1             ; MarcadorDch++
+        STRB r1, [r0]
+
+        ; Comprobar si el marcador alcanza 10 puntos
+        CMP r1, #10
+        BEQ terminar               ; Si MarcadorDch == 10, finalizar el juego
 
 gol_izq
-        ; gol a la izquierda, reiniciar partida
-        B inicio
+        ; Incrementar marcador del jugador izquierdo
+        LDR r0, =MarcadorIzq
+        LDRB r1, [r0]
+        ADD r1, r1, #1             ; MarcadorIzq++
+        STRB r1, [r0]
 
-			
+        ; Comprobar si el marcador alcanza 10 puntos
+        CMP r1, #10
+        BEQ terminar               ; Si MarcadorIzq == 10, finalizar el juego
+
+       
 		LDR r4, =crono
 		LDR r5, =next
 		ldr r4, [r4]			; reloj
@@ -410,7 +430,7 @@ terminar
 
 bfin	
 		b bfin
-		
+	
 		
 RSI_reloj	
 		sub lr, lr, #4 					; corregir @ de retorno
