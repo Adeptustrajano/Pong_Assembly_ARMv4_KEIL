@@ -78,7 +78,7 @@ fin_buc_mod
 		LDR r2, =raquetaIzq
 		LDR r3, =raquetaDch
 		mov r4, #0 						; i = 0
-		mov r5, #32						; tamaño fila
+		mov r5, #32						; tamaÃ±o fila
 pintar_raquetas
 		mul r7, r6, r5 					; r7 = fila *32
 		mov r8, r7
@@ -101,7 +101,7 @@ pintar_pelota
         LDR r0, =0x40007E00       ; @ inicio de tablero
         MOV r1, #8                ; fila media
         MOV r2, #16               ; columna media
-        MOV r3, #32				  ; tamaño fila
+        MOV r3, #32				  ; tamaÃ±o fila
         MUL r4, r1, r3            ; r4 = fila * 32
         ADD r4, r4, r2            ; r4 = fila * 32 + columna
         ADD r4, r0, r4            ; posicion incicial
@@ -111,20 +111,20 @@ pintar_pelota
         LDR r6, =pelota
         STR r4, [r6]              ; guardar posicion en variable pelota la inicial mitad del campo
 
-        LDR r6, =crono       	  ; r6  dirección de crono
+        LDR r6, =crono       	  ; r6  direcciÃ³n de crono
         LDR r6, [r6]        	  ; r6  valor actual del crono (semilla)
         PUSH {r6}             
         BL srand             	  ; inicializa rand con la semilla
-        BL rand              	  ; r0 <- número aleatorio
+        BL rand              	  ; r0 <- nÃºmero aleatorio
         POP {r6}             	  ; restaurar r6 (opcional)
 
-        AND r0, r0, #0x3    	  ; mascara de los dos últimos bits con AND y el nuemro RAND para opciones de 0,1,2,3
-        LDR r1, =dir3        	  ; dirección donde se guarda la dirección de movimiento
-        STRB r0, [r1]       	  ; guardar dirección aleatoria en dir3
+        AND r0, r0, #0x3    	  ; mascara de los dos Ãºltimos bits con AND y el nuemro RAND para opciones de 0,1,2,3
+        LDR r1, =dir3        	  ; direcciÃ³n donde se guarda la direcciÃ³n de movimiento
+        STRB r0, [r1]       	  ; guardar direcciÃ³n aleatoria en dir3
 
 
 ;se inicia pelota en mitad del campo y se pone direccion de mov inicial con una mascara AND de 2 bits en 1 de 4 op.
-;una vez pintada guardar posición pelota en pelota en memoria DATA y direccion en dir3
+;una vez pintada guardar posiciÃ³n pelota en pelota en memoria DATA y direccion en dir3
 
 		
 ;se inicia la partida
@@ -256,7 +256,7 @@ bucle_raq_dch
 	
 mover_pelota
         LDR r0, =pelota
-        LDR r1, [r0]          ; r1 = dirección actual pelota
+        LDR r1, [r0]          ; r1 = direcciÃ³n actual pelota
         MOV r2, #0x20         ; espacio para borrar la pelota
         STRB r2, [r1]         ; borrar la pelota anterior
 
@@ -268,7 +268,7 @@ mover_pelota
 		AND r7, r4, #31       ; col = offset % 32
 
 
-        ; cargar dirección actual de la pelota 0,1,2,3
+        ; cargar direcciÃ³n actual de la pelota 0,1,2,3
         LDR r8, =dir3
         LDRB r8, [r8]
 
@@ -302,15 +302,15 @@ mov_aba_dch
 ;comprobar todos los posibles casos si ha colisionado
 comprobar
 
-        ; asegurar que fila está en rango [0,15]
+        ; asegurar que fila estÃ¡ en rango [0,15]
         CMP r6, #0
         BLT siguiente_mov          ; fuera del tablero por arriba, no mover
         CMP r6, #16
         BGE siguiente_mov          ; fuera del tablero por abajo
 
-        ; asegurar que columna está en rango [0,31]
+        ; asegurar que columna estÃ¡ en rango [0,31]
         CMP r7, #0
-        BLT siguiente_mov          ; fuera del tablero por izquierda (inútil, porque col es unsigned)
+        BLT siguiente_mov          ; fuera del tablero por izquierda (inÃºtil, porque col es unsigned)
         CMP r7, #32
         BGE siguiente_mov          ; fuera del tablero por derecha
 
@@ -332,7 +332,7 @@ comprobar
         CMP r7, #30
         BEQ comprobar_raq_dch
 
-        B pintar_pelota     ; si no hay colisión, continuar
+        B pintar_pelota     ; si no hay colisiÃ³n, continuar
 
 rebote_vertical
         ; invertir el bit vertical de dir3 (bit 1)
@@ -340,7 +340,7 @@ rebote_vertical
         LDRB r10, [r9]
         EOR r10, r10, #0x2    ; usar una mascara con eor para invertir el bit 1 osea ir para arriba o para abajo intercambiar
         STRB r10, [r9]
-        B siguiente_mov      ; saltamos el pintado y en el próximo ciclo se mueve
+        B siguiente_mov      ; saltamos el pintado y en el prÃ³ximo ciclo se mueve
 
 comprobar_raq_izq
         ; comprobar si r6 (fila) coincide con alguna de raquetaIzq
@@ -378,7 +378,7 @@ rebote_horizontal
         LDRB r10, [r9]
         EOR r10, r10, #0x1
         STRB r10, [r9]
-        B siguiente_mov      ; no pintar aún
+        B siguiente_mov      ; no pintar aÃºn
 
 gol_dch
         ; gol a la derecha, reiniciar partida 
