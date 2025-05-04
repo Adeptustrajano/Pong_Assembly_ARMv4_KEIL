@@ -1,5 +1,4 @@
-
-		AREA datos,DATA
+AREA datos,DATA
 ;vuestras variables y constantes
 VICVectAddr0	EQU	0xFFFFF100
 VICIntEnable	EQU	0xFFFFF010
@@ -10,25 +9,25 @@ UART1			EQU	0xE0010000
 I_Bit			EQU 0x80 ; bit 7 de la CPSR
 N				EQU	16 ; filas
 M				EQU	32 ;columnas
-		ALIGN
+		ALIGN 4
 crono 			DCD 0	;contador de centesimas de segundo
 max 			DCD 8 	;velocidad de movimiento (en centesimas s.)
 next 			DCD 0 	;instante siguiente movimiento
 pelota          DCD 0   ;posicion pelota
+		ALIGN 4
 MarcadorIzq     DCB 0   ; marcador del jugador izquierdo
 MarcadorDch     DCB 0   ; marcador del jugador derecho
-		ALIGN
+		ALIGN 4
 raquetaIzq		SPACE	20 ; Vector [5] donde se guardan las posiciones de las X de la raqueta izquierda
-		ALIGN
+		ALIGN 4
 raquetaDch		SPACE	20 ; Vector [5] donde se guardan las posiciones de las X de la raqueta derecha
-		ALIGN
+		ALIGN 4
 tecla			DCB 0	; tecla pulsada en ASCII
-		ALIGN
 dir1 			DCB 0 	;mov. vertical raqueta izda (-1 arriba,0 stop,1 abajo)
 dir2 			DCB 0 	;mov. vertical raqueta dcha (-1 arriba,0 stop,1 abajo)
 dir3 			DCB 0 	;mov. pelota (a decidir por el alumno)
 fin 			DCB 0 	;indicador fin de programa (si vale 1)
-
+		ALIGN 4
 
 
 		AREA codigo,CODE
@@ -52,6 +51,40 @@ inicio
 		mov r1, #0x90 ; muevo a r1 la mascara que tiene a 1 los bits 7 y 4
 		str r1, [r0] ;guardo la m scara en VICIntEnable
 		
+		;poner un valor a variables dir1,2 en 0
+		LDR r0, =dir1
+		MOV r1, #0         ; Inicializar dir1 a 0 (detenido)
+		STRB r1, [r0]
+
+		LDR r0, =dir2
+		MOV r1, #0         ; Inicializar dir2 a 0 (detenido)
+		STRB r1, [r0]
+		
+		;DEPURACION QUE INIZIALIZA RAQUETAS EN AREA DATOS VECTOR PARA NO DAR ERROR VIOLACION DE ACCESO
+		;direcciones válidas dentro del rango del tablero.
+		
+		; Inicializar raqueta izquierda
+        LDR r2, =raquetaIzq         ; Dirección base del array raquetaIzq
+        LDR r3, =0x40007E00         ; Dirección inicial del tablero (columna 1)
+        MOV r4, #5                  ; Número de posiciones a inicializar (5 filas)
+
+bucle_i_raquetaIzq
+        STR r3, [r2], #4            ; Guardar dirección en raquetaIzq y avanzar al siguiente índice
+        ADD r3, r3, #32             ; Avanzar a la siguiente fila en el tablero
+        SUBS r4, r4, #1             ; Decrementar el contador usando la flag z
+        BNE bucle_i_raquetaIzq   ; Si no se ha llegado a 0, continuar el bucle
+
+        ; Inicializar raqueta derecha
+        LDR r2, =raquetaDch         ; Dirección base del array raquetaDch
+        LDR r3, =0x40007E1D         ; Dirección inicial del tablero (columna 29)
+        MOV r4, #5                  ; Número de posiciones a inicializar (5 filas)
+
+bucle_i_raquetaDch
+        STR r3, [r2], #4            ; Guardar dirección en raquetaDch y avanzar al siguiente índice
+        ADD r3, r3, #32             ; Avanzar a la siguiente fila en el tablero
+        SUBS r4, r4, #1             ; Decrementar el contador usando las flag z de 0
+        BNE bucle_i_raquetaDch   ; Si no se ha llegado a 0, continuar el bucle
+		
 LTORG   ; Aquí se generan los literales en el literalpool
 pintar_pantalla
 		LDR r0, =0x40007E00
@@ -71,17 +104,21 @@ ini_bus_espacios
 		blt ini_bus_espacios
 fin_buc_espacios	
 		;colocar las raquetas
+		;usar crono para semilla aleatoria 
 		LDR r6, =crono
 		push {r6}
 		bl srand
 		bl rand
 		pop {r6} 						; n  random
-		;calcular n  random mod 12, ya que las filas v lidas para pintar la raqueta son de la 0 a la 11, sino se sale
-ini_buc_mod
-		cmp r6, #12
-		blt fin_buc_mod
-		sub r6, r6, #12
-		b ini_buc_mod
+;calcular n  random mod 12, ya que las filas v lidas para pintar la raqueta son de la 0 a la 11, sino se sale
+
+;hay que comprobar que r7, y r8 estan dentro de parametros de tablero porque sale error:
+;error 65: access violation at 0x00000000 : no 'write' permission: indica un intento de escribir en una dirección de memoria inválida o no mapeada
+;Asegurar que r6 esté entre 0 y 11 (rango válido para las raquetas)
+		AND r6, r6, #0xF            ; Limitar r6 a un máximo de 15 (4 bits)
+		CMP r6, #12
+		BLT fin_buc_mod
+		SUB r6, r6, #12             ; Ajustar al rango 0-11 si es mayor
 fin_buc_mod
 		LDR r2, =raquetaIzq
 		LDR r3, =raquetaDch
@@ -103,7 +140,7 @@ pintar_raquetas
 		add r6, r6, #1 					; siguiente fila
 		add r4, r4, #1
 		cmp r4, #5
-		blt pintar_raquetas
+		blt pintar_raquetas						; tamaño fila
 		
 pintar_pelota
         LDR r0, =0x40007E00       ; @ inicio de tablero
@@ -154,12 +191,12 @@ jugar
 		cmp r4, #'Q'
 		cmp r4, #'A'
 		ldreq r5, =dir1
-		ldreq r6, [r5]
+		ldreqb r6, [r5]
 		
 		cmp r4, #'O'
 		cmp r4, #'L'
 		ldreq r5, =dir2
-		ldreq r6, [r5]
+		ldreqb r6, [r5]
 		
 		cmp r4, #'Q'
 		cmp r4, #'O'
@@ -219,13 +256,13 @@ salir
 		
 
 siguiente_mov
-		mov r0, #0x20
-		mov r1, #'X'
+		mov r0, #0x20 ;hueco blanco
+		mov r1, #'X'  ;raqueta
 		
 mov_raq_izq
 		LDR r2,=raquetaIzq
 		LDR r3, =dir1
-		ldr r3, [r3] ; valor de dir1 (-1,1,0)
+		ldrb r3, [r3] ; valor de dir1 (-1,1,0)
 		mov r4, #0
 bucle_raq_izq
 		ldr r5, [r2], #4 ; la posicion de la X en pantalla
@@ -241,15 +278,15 @@ bucle_raq_izq
 		cmp r4, #5
 		blt bucle_raq_izq
 		
-mov_raq_dch
+mov_raq_dcha
 		LDR r2,=raquetaDch
 		LDR r3, =dir2
-		ldr r3, [r3] ; valor de dir1 (-1,1,0)
+		ldrb r3, [r3] ; valor de dir2 (-1,1,0)
 		mov r4, #0
 bucle_raq_dch
 		ldr r5, [r2], #4 ; la posicion de la X en pantalla
 		strb r0, [r5]
-		cmp r3, #0          ; Compara dir1 con 0
+		cmp r3, #0          ; Compara dir2 con 0
 		addgt r5, r5, #32   ; Si dir1 > 0, pos = pos + 32
 		sublt r5, r5, #32   ; Si dir1 < 0, pos = pos - 32
 		; Si dir1 == 0, no hace nada
@@ -316,7 +353,7 @@ comprobar
 
         ; asegurar que columna está en rango [0,31]
         CMP r7, #0
-        BLT siguiente_mov          ; fuera del tablero por izquierda (inútil, porque col es unsigned)
+        BLT siguiente_mov          ; fuera del tablero por izquierda 
         CMP r7, #32
         BGE siguiente_mov          ; fuera del tablero por derecha
 
@@ -361,7 +398,7 @@ comprobar_bucle_izq
         ADD r10, r10, #1
         CMP r10, #5
         BLT comprobar_bucle_izq
-        B pintar_pelota      ; no ha chocado
+        B mover_pelota      ; no ha chocado
 
 comprobar_raq_dch
         ; comprobar si r6 (fila) coincide con alguna de raquetaDch
@@ -376,7 +413,7 @@ comprobar_bucle_dch
         ADD r10, r10, #1
         CMP r10, #5
         BLT comprobar_bucle_dch
-        B pintar_pelota      ; no ha chocado
+        B mover_pelota      ; no ha chocado
 
 rebote_horizontal
         ; invertir el bit horizontal de dir3 (bit 0)
