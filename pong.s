@@ -258,6 +258,8 @@ salir
 siguiente_mov
 		mov r0, #0x20 ;hueco blanco
 		mov r1, #'X'  ;raqueta
+		LDR r2, =next
+		str r5, [r2] ; actualizar next
 		
 mov_raq_izq
 		LDR r2,=raquetaIzq
@@ -265,7 +267,7 @@ mov_raq_izq
 		ldrb r3, [r3] ; valor de dir1 (-1,1,0)
 		mov r4, #0
 bucle_raq_izq
-		ldr r5, [r2], #4 ; la posicion de la X en pantalla
+		ldr r5, [r2]; la posicion de la X en pantalla
 		strb r0, [r5]
 		cmp r3, #0          ; Compara dir1 con 0
 		addgt r5, r5, #32   ; Si dir1 > 0, pos = pos + 32
@@ -284,7 +286,7 @@ mov_raq_dcha
 		ldrb r3, [r3] ; valor de dir2 (-1,1,0)
 		mov r4, #0
 bucle_raq_dch
-		ldr r5, [r2], #4 ; la posicion de la X en pantalla
+		ldr r5, [r2]; la posicion de la X en pantalla
 		strb r0, [r5]
 		cmp r3, #0          ; Compara dir2 con 0
 		addgt r5, r5, #32   ; Si dir1 > 0, pos = pos + 32
@@ -298,19 +300,19 @@ bucle_raq_dch
 		blt bucle_raq_dch
 	
 mover_pelota
-        LDR r0, =pelota
-        LDR r1, [r0]          ; r1 = dirección actual pelota
+        LDR r0, =pelota       ;posicion
+        LDR r1, [r0]          ; r1 = posicion actual pelota
         MOV r2, #0x20         ; espacio para borrar la pelota
         STRB r2, [r1]         ; borrar la pelota anterior con espacio en blanco
 
-        ; calcular fila y columna actuales
+        ; calcular fila y columna actuales con =pelota 
         LDR r3, =0x40007E00
         SUB r4, r1, r3        ; r4 = offset pelota = fila*32 + col
         MOV r5, #32
         MOV r6, r4, lsr#5      ; fila = offset / 32 con movimiento de 5 bits derecha
 		AND r7, r4, #31       ; col = mascara de bits con AND para obtener el resto  de la division para representar la columna dentro de la fila 
 
-
+comprobar_bucle
         ; cargar dirección actual de la pelota 0,1,2,3
         LDR r8, =dir3
         LDRB r8, [r8]
@@ -345,37 +347,33 @@ mov_aba_dch
 ;comprobar todos los posibles casos si ha colisionado
 comprobar
 
-        ; asegurar que fila está en rango [0,15]
-        CMP r6, #0
-        BLT siguiente_mov          ; fuera del tablero por arriba, no mover 
-        CMP r6, #16
-        BGE siguiente_mov          ; fuera del tablero por abajo de 16, osea valido entre 0-15
-
-        ; asegurar que columna está en rango [0,31]
+		; gol en columna 0 o 31
         CMP r7, #0
-        BLT siguiente_mov          ; fuera del tablero por izquierda 
-        CMP r7, #32
-        BGE siguiente_mov          ; fuera del tablero por derecha
-
+        BEQ gol_dch
+        CMP r7, #31
+        BEQ gol_izq
+		
         ; rebote con techo o suelo
         CMP r6, #0
         BEQ rebote_vertical
         CMP r6, #15
         BEQ rebote_vertical
 
-        ; gol en columna 0 o 31
-        CMP r7, #0
-        BEQ gol_dch
-        CMP r7, #31
-        BEQ gol_izq
-
         ; rebote con raquetas
         CMP r7, #1
         BEQ comprobar_raq_izq
         CMP r7, #30
         BEQ comprobar_raq_dch
-
-        B pintar_pelota     ; si no hay colisión, continuar
+		
+		;actualizar posicion de la pelota en memoria
+		LDR r3, =0x40007E00
+		MOV r5, #32
+        MUL r4, r6, r5            ; r4 = fila * 32
+        ADD r4, r4, r7            ; r4 = fila * 32 + columna
+        ADD r4, r3, r4            ; posicion pelota actual 
+		
+		B jugar
+        ;saltar a jugar 
 
 rebote_vertical
         ; invertir el bit vertical de dir3 (bit 1)
@@ -383,7 +381,7 @@ rebote_vertical
         LDRB r10, [r9]
         EOR r10, r10, #0x2    ; usar una mascara con eor para invertir el bit 1 osea ir para arriba o para abajo intercambiar
         STRB r10, [r9]
-        B siguiente_mov      ; saltamos el pintado y en el próximo ciclo se mueve
+		b comprobar_bucle
 
 comprobar_raq_izq
         ; comprobar si r6 (fila) coincide con alguna de raquetaIzq
@@ -398,8 +396,8 @@ comprobar_bucle_izq
         ADD r10, r10, #1
         CMP r10, #5
         BLT comprobar_bucle_izq
-        B mover_pelota      ; no ha chocado
-
+		b comprobar_bucle
+		
 comprobar_raq_dch
         ; comprobar si r6 (fila) coincide con alguna de raquetaDch
         LDR r9, =raquetaDch
@@ -413,7 +411,7 @@ comprobar_bucle_dch
         ADD r10, r10, #1
         CMP r10, #5
         BLT comprobar_bucle_dch
-        B mover_pelota      ; no ha chocado
+		b compropbar_bucle
 
 rebote_horizontal
         ; invertir el bit horizontal de dir3 (bit 0)
@@ -421,7 +419,7 @@ rebote_horizontal
         LDRB r10, [r9]
         EOR r10, r10, #0x1
         STRB r10, [r9]
-        B siguiente_mov      ; no pintar aún
+        B comprobar_bucle
 
 gol_dch
         ; Incrementar marcador del jugador derecho
