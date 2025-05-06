@@ -62,31 +62,31 @@ inicio
 		STRB r1, [r0]
 		
 		;DEPURACION QUE INIZIALIZA RAQUETAS EN AREA DATOS VECTOR PARA NO DAR ERROR VIOLACION DE ACCESO
-		;direcciones v lidas dentro del rango del tablero.
+		;direcciones válidas dentro del rango del tablero.
 		
 		; Inicializar raqueta izquierda
-        LDR r2, =raquetaIzq         ; Direcci n base del array raquetaIzq
-        LDR r3, =0x40007E00         ; Direcci n inicial del tablero (columna 1)
-        MOV r4, #5                  ; N mero de posiciones a inicializar (5 filas)
+        LDR r2, =raquetaIzq         ; Dirección base del array raquetaIzq
+        LDR r3, =0x40007E00         ; Dirección inicial del tablero (columna 1)
+        MOV r4, #5                  ; Número de posiciones a inicializar (5 filas)
 
 bucle_i_raquetaIzq
-        STR r3, [r2], #4            ; Guardar direcci n en raquetaIzq y avanzar al siguiente  ndice
+        STR r3, [r2], #4            ; Guardar dirección en raquetaIzq y avanzar al siguiente índice
         ADD r3, r3, #32             ; Avanzar a la siguiente fila en el tablero
         SUBS r4, r4, #1             ; Decrementar el contador usando la flag z
         BNE bucle_i_raquetaIzq   ; Si no se ha llegado a 0, continuar el bucle
 
         ; Inicializar raqueta derecha
-        LDR r2, =raquetaDch         ; Direcci n base del array raquetaDch
-        LDR r3, =0x40007E1D         ; Direcci n inicial del tablero (columna 29)
-        MOV r4, #5                  ; N mero de posiciones a inicializar (5 filas)
+        LDR r2, =raquetaDch         ; Dirección base del array raquetaDch
+        LDR r3, =0x40007E1D         ; Dirección inicial del tablero (columna 29)
+        MOV r4, #5                  ; Número de posiciones a inicializar (5 filas)
 
 bucle_i_raquetaDch
-        STR r3, [r2], #4            ; Guardar direcci n en raquetaDch y avanzar al siguiente  ndice
+        STR r3, [r2], #4            ; Guardar dirección en raquetaDch y avanzar al siguiente índice
         ADD r3, r3, #32             ; Avanzar a la siguiente fila en el tablero
         SUBS r4, r4, #1             ; Decrementar el contador usando las flag z de 0
         BNE bucle_i_raquetaDch   ; Si no se ha llegado a 0, continuar el bucle
 		
-LTORG   ; Aqu  se generan los literales en el literalpool
+LTORG   ; Aquí se generan los literales en el literalpool
 pintar_pantalla
 		LDR r0, =0x40007E00
 		mov r1, #'X'
@@ -114,9 +114,9 @@ fin_buc_espacios
 ;calcular n  random mod 12, ya que las filas v lidas para pintar la raqueta son de la 0 a la 11, sino se sale
 
 ;hay que comprobar que r7, y r8 estan dentro de parametros de tablero porque sale error:
-;error 65: access violation at 0x00000000 : no 'write' permission: indica un intento de escribir en una direcci n de memoria inv lida o no mapeada
-;Asegurar que r6 est  entre 0 y 11 (rango v lido para las raquetas)
-		AND r6, r6, #0xF            ; Limitar r6 a un m ximo de 15 (4 bits)
+;error 65: access violation at 0x00000000 : no 'write' permission: indica un intento de escribir en una dirección de memoria inválida o no mapeada
+;Asegurar que r6 esté entre 0 y 11 (rango válido para las raquetas)
+		AND r6, r6, #0xF            ; Limitar r6 a un máximo de 15 (4 bits)
 		CMP r6, #12
 		BLT fin_buc_mod
 		SUB r6, r6, #12             ; Ajustar al rango 0-11 si es mayor
@@ -124,7 +124,7 @@ fin_buc_mod
 		LDR r2, =raquetaIzq
 		LDR r3, =raquetaDch
 		mov r4, #0 						; i = 0
-		mov r5, #32						; tama o fila
+		mov r5, #32						; tamaño fila
 pintar_raquetas
 		mul r7, r6, r5 					; r7 = fila *32
 		mov r8, r7
@@ -141,15 +141,15 @@ pintar_raquetas
 		add r6, r6, #1 					; siguiente fila
 		add r4, r4, #1
 		cmp r4, #5
-		blt pintar_raquetas						; tama o fila
+		blt pintar_raquetas						; tamaño fila
 		
 pintar_pelota
         LDR r0, =0x40007E00       ; @ inicio de tablero
         MOV r1, #8                ; fila media
         MOV r2, #16               ; columna media
-        MOV r3, #32				  ; tama o fila
+        MOV r3, #32				  ; tamaño fila
         ; Generar fila aleatoria (0 a 15) usando la semilla crono
-        LDR r6, =crono            ; r6 contiene la direcci n de crono (semilla)
+        LDR r6, =crono            ; r6 contiene la dirección de crono (semilla)
         LDR r6, [r6]              ; r6 = valor actual del crono (semilla para rand)
         PUSH {r6}                 ; guardar r6 en la pila como semilla
         BL srand                  ; inicializar rand con la semilla
@@ -158,33 +158,33 @@ pintar_pelota
         AND r6, r6, #0xF          ; limitar valor aleatorio a 4 bits (0 a 15) mascara
         MOV r1, r6                ; r1 = fila aleatoria (entre 0 y 15)
 
-        ; Calcular posici n de la pelota en la columna central pero fila segun crono rand
-        MUL r4, r1, r3            ; r4 = fila * tama o fila
-        ADD r4, r4, r2            ; r4 = fila * tama o fila + columna
-        ADD r4, r0, r4            ; posici n inicial en memoria del tablero + r4 que es posicion en tablero
+        ; Calcular posición de la pelota en la columna central pero fila segun crono rand
+        MUL r4, r1, r3            ; r4 = fila * tamaño fila
+        ADD r4, r4, r2            ; r4 = fila * tamaño fila + columna
+        ADD r4, r0, r4            ; posición inicial en memoria del tablero + r4 que es posicion en tablero
 		
 		;Pintar la pelota
         MOV r5, #'.'
-        STRB r5, [r4]             ; pintar la pelota en pantalla en la posici n calculada aleatoria
+        STRB r5, [r4]             ; pintar la pelota en pantalla en la posición calculada aleatoria
 
 		;guardar posicion pelota
         LDR r6, =pelota
         STR r4, [r6]              ; guardar posicion en variable pelota la inicial mitad del campo
 
-        LDR r6, =crono       	  ; r6  direcci n de crono
+        LDR r6, =crono       	  ; r6  dirección de crono
         LDR r6, [r6]        	  ; r6  valor actual del crono (semilla)
         PUSH {r6}             
         BL srand             	  ; inicializa rand con la semilla
-        BL rand              	  ; r0 <- n mero aleatorio
+        BL rand              	  ; r0 <- número aleatorio
         POP {r6}             	  ; restaurar r6 (opcional)
 
-        AND r6, r6, #0x3    	  ; mascara de los dos  ltimos bits con AND y el nuemro RAND para opciones de 0,1,2,3
-        LDR r1, =dir3        	  ; direcci n donde se guarda la direcci n de movimiento
-        STRB r6, [r1]       	  ; guardar direcci n aleatoria en dir3
+        AND r6, r6, #0x3    	  ; mascara de los dos últimos bits con AND y el nuemro RAND para opciones de 0,1,2,3
+        LDR r1, =dir3        	  ; dirección donde se guarda la dirección de movimiento
+        STRB r6, [r1]       	  ; guardar dirección aleatoria en dir3
 
      
 ;se inicia pelota en mitad del campo y se pone direccion de mov inicial con una mascara AND de 2 bits en 1 de 4 op.
-;una vez pintada guardar posici n pelota en pelota en memoria DATA y direccion en dir3
+;una vez pintada guardar posición pelota en pelota en memoria DATA y direccion en dir3
 		
 ;se inicia la partida
 jugar
@@ -277,7 +277,43 @@ siguiente_mov
 		LDR r2, =next
 		str r5, [r2] ; actualizar next
 		
-;he quitado c digo
+mov_raq_izq
+		LDR r2,=raquetaIzq
+		LDR r3, =dir1
+		ldrb r3, [r3] ; valor de dir1 (-1,1,0)
+		mov r4, #0
+bucle_raq_izq
+		ldr r5, [r2]; la posicion de la X en pantalla
+		strb r0, [r5]
+		cmp r3, #0          ; Compara dir1 con 0
+		addgt r5, r5, #32   ; Si dir1 > 0, pos = pos + 32
+		sublt r5, r5, #32   ; Si dir1 < 0, pos = pos - 32
+		; Si dir1 == 0, no hace nada
+		strb r1, [r5]
+		str r5, [r2], #4
+		
+		add r4, r4, #1
+		cmp r4, #5
+		blt bucle_raq_izq
+		
+mov_raq_dcha
+		LDR r2,=raquetaDch
+		LDR r3, =dir2
+		ldrb r3, [r3] ; valor de dir2 (-1,1,0)
+		mov r4, #0
+bucle_raq_dch
+		ldr r5, [r2]; la posicion de la X en pantalla
+		strb r0, [r5]
+		cmp r3, #0          ; Compara dir2 con 0
+		addgt r5, r5, #32   ; Si dir1 > 0, pos = pos + 32
+		sublt r5, r5, #32   ; Si dir1 < 0, pos = pos - 32
+		; Si dir1 == 0, no hace nada
+		strb r1, [r5]
+		str r5, [r2], #4
+		
+		add r4, r4, #1
+		cmp r4, #5
+		blt bucle_raq_dch
 	
 mover_pelota
         LDR r0, =pelota       ;posicion
@@ -293,7 +329,7 @@ mover_pelota
 		AND r7, r4, #31       ; col = mascara de bits con AND para obtener el resto  de la division para representar la columna dentro de la fila 
 
 comprobar_bucle
-        ; cargar direcci n actual de la pelota 0,1,2,3
+        ; cargar dirección actual de la pelota 0,1,2,3
         LDR r8, =dir3
         LDRB r8, [r8]
 
@@ -359,7 +395,7 @@ comprobar
 
 rebote_vertical
         ; invertir el bit vertical de dir3 (bit 1)
-		; invertir el bit vertical (bit 1), cambiando la direcci n entre "arriba" y "abajo".
+		; invertir el bit vertical (bit 1), cambiando la dirección entre "arriba" y "abajo".
         LDR r9, =dir3
         LDRB r10, [r9]
         EOR r10, r10, #0x1    ; usar una mascara con eor para invertir el bit 1 osea ir para arriba o para abajo intercambiar
@@ -398,10 +434,10 @@ comprobar_bucle_dch
 
 rebote_horizontal
         ; invertir el bit horizontal de dir3 (bit 0)
-		;invertir el bit horizontal (bit 0), cambiando la direcci n entre "izquierda" y "derecha".
+		;invertir el bit horizontal (bit 0), cambiando la dirección entre "izquierda" y "derecha".
         LDR r9, =dir3
         LDRB r10, [r9]
-        EOR r10, r10, #0x1
+        EOR r10, r10, #0x2
         STRB r10, [r9]
         B comprobar_bucle
 
@@ -415,6 +451,8 @@ gol_dch
         ; Comprobar si el marcador alcanza 10 puntos
         CMP r1, #10
         BEQ terminar               ; Si MarcadorDch == 10, finalizar el juego
+		
+		b pintar_pantalla 
 
 gol_izq
         ; Incrementar marcador del jugador izquierdo
@@ -428,12 +466,12 @@ gol_izq
         BEQ terminar               ; Si MarcadorIzq == 10, finalizar el juego
 
        
-		LDR r4, =crono
-		LDR r5, =next
-		ldr r4, [r4]			; reloj
-		str r4, [r5]			; cont_viejo = reloj (actualizamos cont_viejo)
+		;LDR r4, =crono
+		;LDR r5, =next
+		;ldr r4, [r4]			; reloj
+		;str r4, [r5]			; cont_viejo = reloj (actualizamos cont_viejo)
 		
-		b jugar 
+		b pintar_pantalla 
 		
 		
 terminar
