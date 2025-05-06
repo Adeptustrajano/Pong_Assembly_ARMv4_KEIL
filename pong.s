@@ -147,12 +147,26 @@ pintar_pelota
         MOV r1, #8                ; fila media
         MOV r2, #16               ; columna media
         MOV r3, #32				  ; tamaño fila
-        MUL r4, r1, r3            ; r4 = fila * 32
-        ADD r4, r4, r2            ; r4 = fila * 32 + columna
-        ADD r4, r0, r4            ; posicion incicial
-        MOV r5, #'.'
-        STRB r5, [r4]             ; pintar la pelota en pantalla en @ mitad tablero
+        ; Generar fila aleatoria (0 a 15) usando la semilla crono
+        LDR r6, =crono            ; r6 contiene la dirección de crono (semilla)
+        LDR r6, [r6]              ; r6 = valor actual del crono (semilla para rand)
+        PUSH {r6}                 ; guardar r6 en la pila como semilla
+        BL srand                  ; inicializar rand con la semilla
+        BL rand                   ; 
+        POP {r6}                  ; restaurar r6
+        AND r6, r6, #0xF          ; limitar valor aleatorio a 4 bits (0 a 15) mascara
+        MOV r1, r6                ; r1 = fila aleatoria (entre 0 y 15)
 
+        ; Calcular posición de la pelota en la columna central pero fila segun crono rand
+        MUL r4, r1, r3            ; r4 = fila * tamaño fila
+        ADD r4, r4, r2            ; r4 = fila * tamaño fila + columna
+        ADD r4, r0, r4            ; posición inicial en memoria del tablero + r4 que es posicion en tablero
+		
+		;Pintar la pelota
+        MOV r5, #'.'
+        STRB r5, [r4]             ; pintar la pelota en pantalla en la posición calculada aleatoria
+
+		;guardar posicion pelota
         LDR r6, =pelota
         STR r4, [r6]              ; guardar posicion en variable pelota la inicial mitad del campo
 
@@ -163,9 +177,10 @@ pintar_pelota
         BL rand              	  ; r0 <- número aleatorio
         POP {r6}             	  ; restaurar r6 (opcional)
 
-        AND r0, r0, #0x3    	  ; mascara de los dos últimos bits con AND y el nuemro RAND para opciones de 0,1,2,3
+        AND r6, r6, #0x3    	  ; mascara de los dos últimos bits con AND y el nuemro RAND para opciones de 0,1,2,3
         LDR r1, =dir3        	  ; dirección donde se guarda la dirección de movimiento
-        STRB r0, [r1]       	  ; guardar dirección aleatoria en dir3
+        STRB r6, [r1]       	  ; guardar dirección aleatoria en dir3
+
      
 ;se inicia pelota en mitad del campo y se pone direccion de mov inicial con una mascara AND de 2 bits en 1 de 4 op.
 ;una vez pintada guardar posición pelota en pelota en memoria DATA y direccion en dir3
@@ -253,7 +268,6 @@ salir
 		strb r5, [r4]
 		
 		b jugar 						;si no se ha pulsado la letra 6 volvemos al principio
-		
 
 siguiente_mov
 		mov r0, #0x20 ;hueco blanco
@@ -377,6 +391,7 @@ comprobar
 
 rebote_vertical
         ; invertir el bit vertical de dir3 (bit 1)
+		; invertir el bit vertical (bit 1), cambiando la dirección entre "arriba" y "abajo".
         LDR r9, =dir3
         LDRB r10, [r9]
         EOR r10, r10, #0x2    ; usar una mascara con eor para invertir el bit 1 osea ir para arriba o para abajo intercambiar
@@ -411,10 +426,11 @@ comprobar_bucle_dch
         ADD r10, r10, #1
         CMP r10, #5
         BLT comprobar_bucle_dch
-		b compropbar_bucle
+		b comprobar_bucle
 
 rebote_horizontal
         ; invertir el bit horizontal de dir3 (bit 0)
+		;invertir el bit horizontal (bit 0), cambiando la dirección entre "izquierda" y "derecha".
         LDR r9, =dir3
         LDRB r10, [r9]
         EOR r10, r10, #0x1
