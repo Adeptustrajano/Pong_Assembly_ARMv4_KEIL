@@ -1,5 +1,4 @@
-
-		AREA datos,DATA
+AREA datos,DATA
 ;vuestras variables y constantes
 VICVectAddr0	EQU	0xFFFFF100
 VICIntEnable	EQU	0xFFFFF010
