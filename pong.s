@@ -1,4 +1,4 @@
-AREA datos,DATA
+	AREA datos,DATA
 ;vuestras variables y constantes
 VICVectAddr0	EQU	0xFFFFF100
 VICIntEnable	EQU	0xFFFFF010
@@ -374,10 +374,10 @@ comprobar
         CMP r6, #15
         BEQ rebote_vertical
 
-        ; rebote con raquetas
-        CMP r7, #1
+        ; rebote con raquetas en la columna justo de antes
+        CMP r7, #2
         BEQ comprobar_raq_izq
-        CMP r7, #30
+        CMP r7, #29
         BEQ comprobar_raq_dch
 		
 		;actualizar posicion de la pelota en memoria
@@ -401,35 +401,36 @@ rebote_vertical
         STRB r10, [r9]
 		b comprobar_bucle
 
+;rebote raquetas: verificar la columna 1 en lugar de la columna actual (2):
 comprobar_raq_izq
-        ; comprobar si r6 (fila) coincide con alguna de raquetaIzq
-        LDR r9, =raquetaIzq
-        MOV r10, #0
+        ; comprobar si r6 (fila) coincide con alguna fila de raquetaIzq
+        LDR r9, =raquetaIzq          
+        MOV r10, #0                  
 comprobar_bucle_izq
-        LDR r11, [r9, r10, LSL #2]
-        SUB r11, r11, r3     ; offset = pos - pantalla base
-        MOV r12, r11, LSR #5  ; fila = offset / 32 osea 2 elevado a 5
-        CMP r12, r6
-        BEQ rebote_horizontal
-        ADD r10, r10, #1
-        CMP r10, #5
-        BLT comprobar_bucle_izq
-		b comprobar_bucle
+        LDR r11, [r9, r10, LSL #2]   ; posición de raqueta (memoria)
+        SUB r11, r11, r3             ; offset = pos_raqueta - inicio_tablero
+        MOV r12, r11, LSR #5         ; Fila de la raqueta (offset / 32) de cada BYTE de los 5
+        CMP r12, r6                  ; Comparar fila de raqueta con fila de la pelota
+        BEQ rebote_horizontal        
+        ADD r10, r10, #1             ; raqueta++
+        CMP r10, #5                  ; ¿Se han comprobado todas las raquetas?
+        BLT comprobar_bucle_izq      
+        B comprobar_bucle            
 		
 comprobar_raq_dch
-        ; comprobar si r6 (fila) coincide con alguna de raquetaDch
-        LDR r9, =raquetaDch
-        MOV r10, #0
+        ; comprobar si r6 (fila) coincide con alguna fila de raquetaDch
+        LDR r9, =raquetaDch          
+        MOV r10, #0                  
 comprobar_bucle_dch
-        LDR r11, [r9, r10, LSL #2]
-        SUB r11, r11, r3
-        MOV r12, r11, LSR #5   ; Dividir r11 entre 32 (desplazar 5 bits a la derecha)
-        CMP r12, r6
-        BEQ rebote_horizontal
-        ADD r10, r10, #1
-        CMP r10, #5
-        BLT comprobar_bucle_dch
-		b comprobar_bucle
+        LDR r11, [r9, r10, LSL #2]   ; posición de raqueta (memoria)
+        SUB r11, r11, r3             ; offset = pos_raqueta - inicio_tablero
+        MOV r12, r11, LSR #5         ; Fila de la raqueta (offset / 32) de cada BYTE de los 5
+        CMP r12, r6                  ; Comparar fila de raqueta con fila de la pelota
+        BEQ rebote_horizontal        
+        ADD r10, r10, #1             ; raqueta++
+        CMP r10, #5                  ; ¿Se han comprobado todas las raquetas?
+        BLT comprobar_bucle_dch      
+        B comprobar_bucle            
 
 rebote_horizontal
         ; invertir el bit horizontal de dir3 (bit 0)
