@@ -205,16 +205,16 @@ jugar
 		;Analizar el movimiento de las raquetas
 		cmp r4, #'q'
 		ldreq r5, =dir1
-		ldreqb r6, [r5]
+		ldreqsb r6, [r5]
 		cmp r4, #'a'
 		ldreq r5, =dir1
-		ldreqb r6, [r5]
+		ldreqsb r6, [r5]
 		cmp r4, #'o'
 		ldreq r5, =dir2
-		ldreqb r6, [r5]
+		ldreqsb r6, [r5]
 		cmp r4, #'l'
 		ldreq r5, =dir2
-		ldreqb r6, [r5]
+		ldreqsb r6, [r5]
 		
 		cmp r4, #'q'
 		beq caso_q_o
@@ -228,12 +228,12 @@ jugar
 		bne pass
 		
 caso_q_o
-		cmp r6, #-1
-		moveq r7, #0
-		cmp r6, #1
-		moveq r7, #-1
-		cmp r6, #0
-		moveq r7, #-1
+		cmp r6, #-1; si dir =-1, hacia arriba
+		moveq r7, #0;detener
+		cmp r6, #1;si dir=1, abajo
+		moveq r7, #-1;subir
+		cmp r6, #0; si dir= 0, cambia hacia arriba
+		moveq r7, #-1;
 		
 		strb r7, [r5]
 		
