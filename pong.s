@@ -1,4 +1,5 @@
-AREA datos,DATA
+
+		AREA datos,DATA
 ;vuestras variables y constantes
 VICVectAddr0	EQU	0xFFFFF100
 VICIntEnable	EQU	0xFFFFF010
@@ -15,8 +16,12 @@ max 			DCD 8 	;velocidad de movimiento (en centesimas s.)
 next 			DCD 0 	;instante siguiente movimiento
 pelota          DCD 0   ;posicion pelota
 		ALIGN 4
-MarcadorIzq     DCB 0   ; marcador del jugador izquierdo
-MarcadorDch     DCB 0   ; marcador del jugador derecho
+marcadorIzq     DCB 0   ; marcador del jugador izquierdo
+marcadorDch     DCB 0   ; marcador del jugador derecho
+marcadorText	DCB "  Jugador 1: 0    Jugador 2: 0  ", 0		; El resultado de J1 está en marcadorText[13]
+																; El resultado de J2 está en marcadorText[29]
+ganador1		DCB	"        GANADOR Jugador 1       "
+ganador2		DCB	"        GANADOR Jugador 2       "
 		ALIGN 4
 raquetaIzq		SPACE	20 ; Vector [5] donde se guardan las posiciones de las X de la raqueta izquierda
 		ALIGN 4
@@ -59,31 +64,7 @@ inicio
 		LDR r0, =dir2
 		MOV r1, #0         ; Inicializar dir2 a 0 (detenido)
 		STRB r1, [r0]
-		
-		;DEPURACION QUE INIZIALIZA RAQUETAS EN AREA DATOS VECTOR PARA NO DAR ERROR VIOLACION DE ACCESO
-		;direcciones v?lidas dentro del rango del tablero.
-		
-		; Inicializar raqueta izquierda
-        LDR r2, =raquetaIzq         ; Direcci?n base del array raquetaIzq
-        LDR r3, =0x40007E00         ; Direcci?n inicial del tablero (columna 1)
-        MOV r4, #5                  ; N?mero de posiciones a inicializar (5 filas)
 
-bucle_i_raquetaIzq
-        STR r3, [r2], #4            ; Guardar direcci?n en raquetaIzq y avanzar al siguiente ?ndice
-        ADD r3, r3, #32             ; Avanzar a la siguiente fila en el tablero
-        SUBS r4, r4, #1             ; Decrementar el contador usando la flag z
-        BNE bucle_i_raquetaIzq   ; Si no se ha llegado a 0, continuar el bucle
-
-        ; Inicializar raqueta derecha
-        LDR r2, =raquetaDch         ; Direcci?n base del array raquetaDch
-        LDR r3, =0x40007E1D         ; Direcci?n inicial del tablero (columna 29)
-        MOV r4, #5                  ; N?mero de posiciones a inicializar (5 filas)
-
-bucle_i_raquetaDch
-        STR r3, [r2], #4            ; Guardar direcci?n en raquetaDch y avanzar al siguiente ?ndice
-        ADD r3, r3, #32             ; Avanzar a la siguiente fila en el tablero
-        SUBS r4, r4, #1             ; Decrementar el contador usando las flag z de 0
-        BNE bucle_i_raquetaDch   ; Si no se ha llegado a 0, continuar el bucle
 		
 LTORG   ; Aqu? se generan los literales en el literalpool
 pintar_pantalla
@@ -94,31 +75,36 @@ pintar_pantalla
 		mov r4, #0 						; i=0
 		mov r5, #N 						; filas
 		mov r6, #M 						; columnas
+		LDR r7, =marcadorText
 		mul r5, r6, r5 					; tamannio de la pantalla
 		cmp r4, r5
 		bge fin_buc_espacios
 ini_bus_espacios
 		strb r3, [r0, r4] 				; poner toda la pantalla con espacio con preindexado para conservar la posi n inicial
+		cmp r4, #32
+		bge else_buc_espacios
+		ldrb r6, [r7], #1
+		strb r6, [r0, r4]
+else_buc_espacios
 		add r4, r4, #1
 		cmp r4, r5
 		blt ini_bus_espacios
-fin_buc_espacios	
+fin_buc_espacios
 		;colocar las raquetas
+		add r0, r0, #32 ; Reservar la primera fila para el marcador
 		;usar crono para semilla aleatoria 
 		LDR r6, =crono
 		push {r6}
 		bl srand
 		bl rand
 		pop {r6} 						; n  random
-;calcular n  random mod 12, ya que las filas v lidas para pintar la raqueta son de la 0 a la 11, sino se sale
+;calcular n  random mod 11, ya que las filas v lidas para pintar la raqueta son de la 1 a la 11, sino se sale
 
-;hay que comprobar que r7, y r8 estan dentro de parametros de tablero porque sale error:
-;error 65: access violation at 0x00000000 : no 'write' permission: indica un intento de escribir en una direcci?n de memoria inv?lida o no mapeada
 ;Asegurar que r6 est? entre 0 y 11 (rango v?lido para las raquetas)
 		AND r6, r6, #0xF            ; Limitar r6 a un m?ximo de 15 (4 bits)
-		CMP r6, #12
+		CMP r6, #11
 		BLT fin_buc_mod
-		SUB r6, r6, #12             ; Ajustar al rango 0-11 si es mayor
+		SUB r6, r6, #11             ; Ajustar al rango 1-11 si es mayor
 fin_buc_mod
 		LDR r2, =raquetaIzq
 		LDR r3, =raquetaDch
@@ -304,6 +290,8 @@ siguiente_mov
 		LDR r6, =0x40007E00
 		LDR r7, =0x40007FFF
 		
+		add r6, r6, #32
+		
 mov_raq_izq
 		LDR r2,=raquetaIzq
 		LDR r3, =dir1
@@ -311,19 +299,28 @@ mov_raq_izq
 		mov r4, #0
 bucle_raq_izq
 		ldr r5, [r2]; la posicion de la X en pantalla
-		strb r0, [r5]
-		cmp r3, #0          ; Compara dir1 con 0
+		
+		cmp r3, #0
+		cmpgt r4, #0
+		streqb r0, [r5]
+		
+		cmp r3, #0
+		cmplt r4, #4
+		streqb r0, [r5]
+		
+next_mov_rq_izq
+		cmp r3, #0          ; Compara dir2 con 0
 		beq else_izq ; Si dir1 == 0, no hace nada
 		
-		addgt r5, r5, #32   ; Si dir1 > 0, pos = pos + 32
-		sublt r5, r5, #32   ; Si dir1 < 0, pos = pos - 32
+		addgt r5, r5, #32   ; Si dir2 > 0, pos = pos + 32 hacia abajo
+		sublt r5, r5, #32   ; Si dir2 < 0, pos = pos - 32 hacia arriba
 		
-		addgt r8, r6, #1
-		sublt r8, r7, #30
+		addgt r8, r6, #1 ;Se sobrepasa por abajo y la siguiente posición es arriba
+		sublt r8, r7, #30 ;se sobrepasa por arriba y la siguiente posición es abajo
 		
 		cmp r5, r7 ; new_pos > 0x40007FFF
 		movgt r5, r8
-		cmp r5, r6; new_pos < 0x40007E00
+		cmp r5, r6; new_pos < 0x40007E00 +32
 		movlt r5, r8
 		
 else_izq		
@@ -351,7 +348,7 @@ bucle_raq_dch
 		cmplt r4, #4
 		streqb r0, [r5]
 
-next_mov
+next_mov_rq_drch
 		cmp r3, #0          ; Compara dir2 con 0
 		beq else_dech ; Si dir1 == 0, no hace nada
 		
@@ -363,7 +360,7 @@ next_mov
 		
 		cmp r5, r7 ; new_pos > 0x40007FFF
 		movgt r5, r8
-		cmp r5, r6; new_pos < 0x40007E00
+		cmp r5, r6; new_pos < 0x40007E00 +32
 		movlt r5, r8
 		
 else_dech
@@ -505,26 +502,32 @@ rebote_horizontal
 
 gol_dch
         ; Incrementar marcador del jugador derecho
-        LDR r0, =MarcadorDch
+        LDR r0, =marcadorDch
+		LDR r2, =marcadorText
         LDRB r1, [r0]
         ADD r1, r1, #1             ; MarcadorDch++
         STRB r1, [r0]
-
+		add r3, r1, #48
+		strb r3, [r2, #29]
         ; Comprobar si el marcador alcanza 10 puntos
         CMP r1, #10
+		moveq r4, #1
         BEQ terminar               ; Si MarcadorDch == 10, finalizar el juego
 		
 		b pintar_pantalla 
 
 gol_izq
         ; Incrementar marcador del jugador izquierdo
-        LDR r0, =MarcadorIzq
+        LDR r0, =marcadorIzq
+		LDR r2, =marcadorText
         LDRB r1, [r0]
         ADD r1, r1, #1             ; MarcadorIzq++
         STRB r1, [r0]
-
+		add r3, r1, #48
+		strb r3, [r2, #13]
         ; Comprobar si el marcador alcanza 10 puntos
         CMP r1, #10
+		moveq r4, #-1
         BEQ terminar               ; Si MarcadorIzq == 10, finalizar el juego
        
 		;LDR r4, =crono
@@ -536,6 +539,20 @@ gol_izq
 		
 		
 terminar
+		LDR r0, =0x40007E00
+		cmp r4, #0
+		ldrlt r1, =ganador1
+		ldrgt r1, =ganador2
+		
+bucle_ganador
+		
+		ldrb r3, [r1], #1
+		strb r3, [r0], #1
+		
+		add r4, r4, #1
+		cmp r4, #32
+		blt bucle_ganador
+		
 		LDR r0, =VICIntEnClr
 		mov r1, #0x90 					;pon un 1 en el bit 4 y 7
 		str r1, [r0]
