@@ -1,7 +1,4 @@
 ;/*****************************************************************************/ 
-;/* Carlos Jose Perez Jimenez 
-;/* Mayo 2014 
-;/* 
 ;/* Implementacion de un generador de numeros pseudo-aleatorios de 31 bits
 ;/* Es el generador en congruencias lineales 
 ;/* x_n = 1103515245 * x_{n-1} + 12345 mod 2^31
