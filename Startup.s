@@ -1,34 +1,15 @@
 ;/*****************************************************************************/  
-;/* Carlos Jose Perez Jimenez 
-;/* cjperez@unizar.es 
+;/* Adaptado el Startup de keil 
 ;/* 
-;/* Adaptado el Startup de keil a las particularidades de AOC1  
-;/* 
-;/* Abril 2015 
 ;/*   Definicion de pantalla de texto 
 ;/*   UART1 -> inicializacion 
 ;/*     - Entrada: teclado 
 ;/*     - Salida: Servicio sistema (Impresion cadena caracteres) 
 ;/* 
-;/* Mayo 2011 
 ;/*   Procesador -> modo SVC, I=0, F=1 
 ;/*	  VIC: entradas vectorizadas manteniendo orden de prioridades 
 ;/*	  Timer 0 -> 100 interrupciones por segundo 
 ;/*   No se inicializa pila en modo USER 
-;/* 
-;/*****************************************************************************/ 
-;/* STARTUP.S: Startup file for Philips LPC2000                               */ 
-;/*****************************************************************************/ 
-;/* <<< Use Configuration Wizard in Context Menu >>>                          */ 
-;/*****************************************************************************/ 
-;/* This file is part of the uVision/ARM development tools.                   */ 
-;/* Copyright (c) 2005-2007 Keil Software. All rights reserved.               */ 
-;/* This software may only be used under the terms of a valid, current,       */ 
-;/* end user licence from KEIL for a compatible version of KEIL software      */ 
-;/* development tools. Nothing else gives you the right to use this software. */ 
-;/*****************************************************************************/ 
- 
- 
 ;/* 
 ; *  The STARTUP.S code is executed after CPU Reset. This file may be  
 ; *  translated with the following SET symbols. In uVision these SET  
